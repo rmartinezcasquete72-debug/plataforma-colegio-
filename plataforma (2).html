@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Plataforma Educativa Institucional</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{margin:0;font-family:Arial;background:#eef3f7}
+header{background:#0d47a1;color:white;padding:15px;text-align:center}
+.container{max-width:520px;margin:30px auto;background:white;padding:25px;border-radius:10px;box-shadow:0 4px 10px rgba(0,0,0,.2)}
+button{width:100%;padding:10px;margin:8px 0;background:#1976d2;color:white;border:none;border-radius:6px;cursor:pointer}
+input{width:100%;padding:8px;margin:6px 0}
+.panel{display:none;padding:15px}
+table{width:100%;border-collapse:collapse}
+th,td{border:1px solid #ccc;padding:6px;text-align:center}
+th{background:#e3f2fd}
+.progress{height:18px;background:#ccc;border-radius:10px;overflow:hidden;margin-bottom:10px}
+.bar{height:100%;text-align:center;color:white;font-size:12px}
+.muy{background:#2e7d32}
+.bien{background:#1976d2}
+.reg{background:#f9a825;color:black}
+</style>
+</head>
+<body>
+
+<header>
+<h2>Unidad Educativa Adolfo H. Simmons</h2>
+<p>Plataforma digital para la recepción, organización y seguimiento de las tareas escolares</p>
+</header>
+
+<div class="container" id="inicio">
+<button onclick="mostrar('loginDocente')">Ingreso Docente</button>
+<button onclick="mostrar('loginEstudiante')">Ingreso Estudiante</button>
+<button onclick="mostrar('registro')">Crear cuenta estudiante</button>
+</div>
+
+<div class="container" id="registro" style="display:none">
+<h3>Registro de Estudiante</h3>
+<input id="cedula" placeholder="Cédula">
+<input id="nombre" placeholder="Nombre">
+<input id="apellido" placeholder="Apellido">
+<input id="pass" type="password" placeholder="Contraseña">
+<button onclick="registrar()">Registrar</button>
+<button onclick="volver()">Volver</button>
+</div>
+
+<div class="container" id="loginEstudiante" style="display:none">
+<h3>Ingreso Estudiante</h3>
+<input id="userE" placeholder="Cédula">
+<input id="passE" type="password" placeholder="Contraseña">
+<button onclick="loginEstudiante()">Ingresar</button>
+<button onclick="volver()">Volver</button>
+</div>
+
+<div class="container" id="loginDocente" style="display:none">
+<h3>Ingreso Docente</h3>
+<input id="passD" type="password" placeholder="Contraseña institucional">
+<button onclick="loginDocente()">Ingresar</button>
+<button onclick="volver()">Volver</button>
+</div>
+
+<div class="panel" id="panelEstudiante">
+<h3>Panel del Estudiante</h3>
+<input id="materia" placeholder="Materia">
+<input type="file" id="archivo">
+<button onclick="subirTarea()">Subir deber</button>
+<table>
+<thead>
+<tr><th>Materia</th><th>Estado</th><th>Nota</th></tr>
+</thead>
+<tbody id="tablaEstudiante"></tbody>
+</table>
+<button onclick="cerrar()">Cerrar sesión</button>
+</div>
+
+<div class="panel" id="panelDocente">
+<h3>Panel del Docente</h3>
+<p>Muy bueno</p><div class="progress"><div id="mb" class="bar muy"></div></div>
+<p>Bueno</p><div class="progress"><div id="b" class="bar bien"></div></div>
+<p>Regular</p><div class="progress"><div id="r" class="bar reg"></div></div>
+
+<table>
+<thead>
+<tr><th>Estudiante</th><th>Materia</th><th>Archivo</th><th>Nota</th></tr>
+</thead>
+<tbody id="tablaDocente"></tbody>
+</table>
+<button onclick="cerrar()">Cerrar sesión</button>
+</div>
+
+<script>
+let estudiante="";
+function mostrar(id){
+ document.querySelectorAll('.container').forEach(c=>c.style.display='none');
+ document.getElementById(id).style.display='block';
+}
+function volver(){location.reload();}
+
+function registrar(){
+ let u=JSON.parse(localStorage.getItem("usuarios"))||[];
+ u.push({cedula:cedula.value,nombre:nombre.value,apellido:apellido.value,pass:pass.value});
+ localStorage.setItem("usuarios",JSON.stringify(u));
+ alert("Cuenta creada");
+ volver();
+}
+
+function loginEstudiante(){
+ let u=JSON.parse(localStorage.getItem("usuarios"))||[];
+ let ok=u.find(x=>x.cedula===userE.value && x.pass===passE.value);
+ if(!ok){alert("Datos incorrectos");return;}
+ estudiante=ok.apellido+" "+ok.nombre;
+ document.getElementById("panelEstudiante").style.display='block';
+ mostrarTareasEst();
+}
+
+function loginDocente(){
+ if(passD.value!=="Adolfo"){alert("Contraseña incorrecta");return;}
+ document.getElementById("panelDocente").style.display='block';
+ mostrarTareasDoc();
+}
+
+function subirTarea(){
+ let t=JSON.parse(localStorage.getItem("tareas"))||[];
+ let r=new FileReader();
+ r.onload=e=>{
+  t.push({est:estudiante,mat:materia.value,arc:e.target.result,nota:""});
+  localStorage.setItem("tareas",JSON.stringify(t));
+  mostrarTareasEst();
+ }
+ r.readAsDataURL(archivo.files[0]);
+}
+
+function mostrarTareasEst(){
+ let t=JSON.parse(localStorage.getItem("tareas"))||[];
+ tablaEstudiante.innerHTML="";
+ t.filter(x=>x.est===estudiante).forEach(x=>{
+  tablaEstudiante.innerHTML+=`<tr><td>${x.mat}</td><td>${x.nota?"Calificado":"Entregado"}</td><td>${x.nota}</td></tr>`;
+ });
+}
+
+function mostrarTareasDoc(){
+ let t=JSON.parse(localStorage.getItem("tareas"))||[];
+ let mb=0,b=0,r=0;
+ tablaDocente.innerHTML="";
+ t.forEach((x,i)=>{
+  if(x.nota>=9)mb++; else if(x.nota>=7)b++; else if(x.nota)r++;
+  tablaDocente.innerHTML+=`<tr><td>${x.est}</td><td>${x.mat}</td><td><a href="${x.arc}" target="_blank">Ver</a></td><td><input value="${x.nota}" onchange="calificar(${i},this.value)"></td></tr>`;
+ });
+ let tot=mb+b+r||1;
+ document.getElementById("mb").style.width=mb*100/tot+"%";
+ document.getElementById("b").style.width=b*100/tot+"%";
+ document.getElementById("r").style.width=r*100/tot+"%";
+}
+
+function calificar(i,v){
+ let t=JSON.parse(localStorage.getItem("tareas"));
+ t[i].nota=v;
+ localStorage.setItem("tareas",JSON.stringify(t));
+ mostrarTareasDoc();
+}
+function cerrar(){location.reload();}
+</script>
+
+</body>
+</html>
